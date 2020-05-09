@@ -19,3 +19,5 @@ interface TaskExecutor {
     suspend fun <Result> execute(task: Task<Result>): Result
     fun close()
 }
+
+expect abstract class AbstractExecutor() : TaskExecutor

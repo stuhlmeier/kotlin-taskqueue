@@ -20,7 +20,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
-class PoolExecutor(val workers: Int, context: CoroutineContext = EmptyCoroutineContext) : TaskExecutor {
+class PoolExecutor(val workers: Int, context: CoroutineContext = EmptyCoroutineContext) : AbstractExecutor() {
     private data class QueuedTask<Result>(val task: Task<Result>, val job: CompletableDeferred<Result>)
 
     private val job = Job(context[Job])
