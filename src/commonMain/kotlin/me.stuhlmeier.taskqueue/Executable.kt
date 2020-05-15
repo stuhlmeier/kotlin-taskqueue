@@ -15,4 +15,6 @@
 
 package me.stuhlmeier.taskqueue
 
-typealias Task<Result> = suspend () -> Result
+/* fun */ interface Executable<Result> /* : suspend () -> Result */ {
+    suspend operator fun invoke(): Result
+}

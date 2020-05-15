@@ -10,7 +10,7 @@ import kotlin.test.assertTrue
 // Since they all use sequential executors (1 worker) this shouldn't result in any odd bugs,
 // but this will probably be replaced with a sort of "checkpoint" system, similar to how
 // tests are handled in kotlinx.coroutines (cf. TestBase)
-class PoolExecutorTests {
+class CoroutinePoolExecutorTests {
     @Test
     fun testQueuedTaskCompletes() = runTest {
         val executor = poolExecutor(1)
@@ -18,9 +18,11 @@ class PoolExecutorTests {
         var endFlag = false
 
         val job = async {
-            executor.execute {
-                endFlag = true
-            }
+            executor.execute(object : Executable<Unit> {
+                override suspend fun invoke() {
+                    endFlag = true
+                }
+            })
         }
 
         withTimeout(JOIN_TIMEOUT) { job.await() }
@@ -36,11 +38,13 @@ class PoolExecutorTests {
         var endFlag = false
 
         val job = async {
-            executor.execute {
-                beginFlag = true
-                delay(1000)
-                endFlag = true
-            }
+            executor.execute(object : Executable<Unit> {
+                override suspend fun invoke() {
+                    beginFlag = true
+                    delay(1000)
+                    endFlag = true
+                }
+            })
         }
 
         launch {
@@ -70,15 +74,19 @@ class PoolExecutorTests {
         launch {
             supervisorScope {
                 launch {
-                    executor.execute {
-                        delay(1000)
-                        endFlag1 = true
-                    }
+                    executor.execute(object : Executable<Unit> {
+                        override suspend fun invoke() {
+                            delay(1000)
+                            endFlag1 = true
+                        }
+                    })
                 }
                 job = async {
-                    executor.execute {
-                        endFlag2 = true
-                    }
+                    executor.execute(object : Executable<Unit> {
+                        override suspend fun invoke() {
+                            endFlag2 = true
+                        }
+                    })
                 }
             }
         }
@@ -104,7 +112,13 @@ class PoolExecutorTests {
 
         executor.close()
 
-        assertFailsWith<IllegalStateException> { executor.execute { Unit } }
+        assertFailsWith<IllegalStateException> {
+            executor.execute(object : Executable<Unit> {
+                override suspend fun invoke() {
+                    Unit
+                }
+            })
+        }
     }
 
     @Test
@@ -115,11 +129,13 @@ class PoolExecutorTests {
         var endFlag = false
 
         val job = async {
-            executor.execute {
-                beginFlag = true
-                delay(1000)
-                endFlag = true
-            }
+            executor.execute(object : Executable<Unit> {
+                override suspend fun invoke() {
+                    beginFlag = true
+                    delay(1000)
+                    endFlag = true
+                }
+            })
         }
 
         launch {
@@ -146,14 +162,18 @@ class PoolExecutorTests {
         launch {
             supervisorScope {
                 launch {
-                    executor.execute {
-                        delay(1000)
-                    }
+                    executor.execute(object : Executable<Unit> {
+                        override suspend fun invoke() {
+                            delay(1000)
+                        }
+                    })
                 }
                 job = async {
-                    executor.execute {
-                        endFlag = true
-                    }
+                    executor.execute(object : Executable<Unit> {
+                        override suspend fun invoke() {
+                            endFlag = true
+                        }
+                    })
                 }
             }
         }

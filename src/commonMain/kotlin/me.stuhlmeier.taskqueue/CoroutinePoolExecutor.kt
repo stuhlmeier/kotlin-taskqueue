@@ -20,14 +20,15 @@ import kotlinx.coroutines.channels.Channel
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
-class PoolExecutor(val workers: Int, context: CoroutineContext = EmptyCoroutineContext) : AbstractExecutor() {
-    private data class QueuedTask<Result>(val task: Task<Result>, val job: CompletableDeferred<Result>)
+class CoroutinePoolExecutor(val workers: Int, context: CoroutineContext = EmptyCoroutineContext) : AbstractExecutor() {
+    private data class QueuedTask<Result>(val executable: Executable<Result>, val job: CompletableDeferred<Result>)
 
     private val job = Job(context[Job])
     private val scope = CoroutineScope(context + job)
     private val queue = Channel<QueuedTask<*>>(Channel.RENDEZVOUS)
 
-    private fun createCancellationException() = CancellationException("${PoolExecutor::class.simpleName} was cancelled")
+    private fun createCancellationException() =
+        CancellationException("${CoroutinePoolExecutor::class.simpleName} was cancelled")
 
     init {
         require(workers > 0) { "${::workers.name} must be positive" }
@@ -49,7 +50,7 @@ class PoolExecutor(val workers: Int, context: CoroutineContext = EmptyCoroutineC
                                 queued as QueuedTask<Any?>
 
                                 try {
-                                    val result = withContext(queued.job) { queued.task() }
+                                    val result = withContext(queued.job) { queued.executable() }
                                     queued.job.complete(result)
                                 } catch (e: CancellationException) {
                                     queued.job.cancel(e)
@@ -66,12 +67,12 @@ class PoolExecutor(val workers: Int, context: CoroutineContext = EmptyCoroutineC
         }
     }
 
-    override suspend fun <Result> execute(task: Task<Result>): Result {
-        if (!scope.isActive) throw IllegalStateException("${PoolExecutor::class.simpleName} is closed")
+    override suspend fun <Result> execute(executable: Executable<Result>): Result {
+        if (!scope.isActive) throw IllegalStateException("${CoroutinePoolExecutor::class.simpleName} is closed")
 
         val job = CompletableDeferred<Result>(this.job)
         try {
-            queue.send(QueuedTask(task, job))
+            queue.send(QueuedTask(executable, job))
             return job.await()
         } catch (e: CancellationException) {
             job.cancel(e)

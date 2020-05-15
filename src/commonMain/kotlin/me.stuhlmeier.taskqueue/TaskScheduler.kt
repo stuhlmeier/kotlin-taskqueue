@@ -15,11 +15,18 @@
 
 package me.stuhlmeier.taskqueue
 
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.EmptyCoroutineContext
+import kotlinx.coroutines.CancellationException
 
-fun executor(context: CoroutineContext = EmptyCoroutineContext) = CoroutineExecutor(context)
-fun poolExecutor(workers: Int, context: CoroutineContext = EmptyCoroutineContext) =
-    CoroutinePoolExecutor(workers, context)
+sealed class RescheduleAction {
+    data class RescheduleAt(val timestamp: Timestamp) : RescheduleAction()
+    data class Cancel(val cause: CancellationException? = null) : RescheduleAction()
+}
 
-fun sequentialExecutor(context: CoroutineContext = EmptyCoroutineContext) = CoroutinePoolExecutor(1, context)
+interface TaskScheduler {
+    interface Factory {
+        fun create(task: Task<*>): TaskScheduler
+    }
+
+    fun taskSucceeded(task: Task<*>, timestamp: Timestamp)
+    fun taskFailed(task: Task<*>, timestamp: Timestamp): RescheduleAction?
+}

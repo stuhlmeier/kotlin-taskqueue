@@ -16,7 +16,7 @@
 package me.stuhlmeier.taskqueue
 
 interface TaskExecutor {
-    suspend fun <Result> execute(task: Task<Result>): Result
+    suspend fun <Result> execute(executable: Executable<Result>): Result
     fun close()
 }
 

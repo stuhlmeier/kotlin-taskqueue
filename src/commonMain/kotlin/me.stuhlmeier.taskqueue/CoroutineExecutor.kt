@@ -15,11 +15,25 @@
 
 package me.stuhlmeier.taskqueue
 
+import kotlinx.coroutines.*
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
-fun executor(context: CoroutineContext = EmptyCoroutineContext) = CoroutineExecutor(context)
-fun poolExecutor(workers: Int, context: CoroutineContext = EmptyCoroutineContext) =
-    CoroutinePoolExecutor(workers, context)
+class CoroutineExecutor(context: CoroutineContext = EmptyCoroutineContext) : AbstractExecutor() {
+    private val job = Job(context[Job])
+    private val scope = CoroutineScope(context + job)
 
-fun sequentialExecutor(context: CoroutineContext = EmptyCoroutineContext) = CoroutinePoolExecutor(1, context)
+    override suspend fun <Result> execute(executable: Executable<Result>): Result {
+        val result = scope.async(start = CoroutineStart.LAZY) { executable() }
+        try {
+            return result.await()
+        } catch (e: CancellationException) {
+            result.cancel(e)
+            throw e
+        }
+    }
+
+    override fun close() {
+        scope.cancel(CancellationException("${CoroutineExecutor::class.simpleName} was cancelled"))
+    }
+}

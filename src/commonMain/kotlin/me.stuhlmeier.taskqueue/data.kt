@@ -15,11 +15,4 @@
 
 package me.stuhlmeier.taskqueue
 
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.EmptyCoroutineContext
-
-fun executor(context: CoroutineContext = EmptyCoroutineContext) = CoroutineExecutor(context)
-fun poolExecutor(workers: Int, context: CoroutineContext = EmptyCoroutineContext) =
-    CoroutinePoolExecutor(workers, context)
-
-fun sequentialExecutor(context: CoroutineContext = EmptyCoroutineContext) = CoroutinePoolExecutor(1, context)
+typealias Timestamp = Long
